@@ -25,11 +25,107 @@ def personalize_data(data):
     changes_ids = np.argwhere(diffs != 0).squeeze(1) + 1
     # DON'T FORGET LAST ELEMENT IN DATA
     changes_ids = np.concatenate([changes_ids, [len(data)]])
-    personalized = np.split(data, changes_ids)
-    print(personalized)
+    personal_data = np.split(data, changes_ids)[:-1]  # LAST ELEMENT IS EMPTY
+    # LIST OF NP ARRAYS
+    return personal_data
 
+
+def extract_observation_data(person):
+    data = person[:, 1:]
+    n_measures = len(data)
+    times = data[:, 0]
+    rr = data[:, 1]
+    labels = data[:, -1]
+    observation_time = times[-1]
+    mean_rr = np.mean(rr)
+    std_rr = np.std(rr)
+    anomal_rr = rr[labels.astype(np.bool)]
+    mean_anomal = np.mean(anomal_rr)
+    std_anomal = np.std(anomal_rr)
+
+    diffs = np.diff(labels)
+
+    starts_ids = np.argwhere(diffs > 0).squeeze(1) + 1
+
+    if labels[0] > 0:
+        starts_ids = np.concatenate([[0], starts_ids])
+
+    ends_ids = np.argwhere(diffs < 0).squeeze(1) + 1
+    if labels[-1] > 0:
+        ends_ids = np.concatenate([ends_ids, [n_measures - 1]])
+
+    assert len(starts_ids) == len(ends_ids), 'FAIL ANOMALY MASKING'
+
+    anomaly_measures = ends_ids - starts_ids
+    anomaly_durations = times[ends_ids] - times[starts_ids]
+    intra_measures = starts_ids[1:] - ends_ids[:-1]
+    intra_durations = times[starts_ids[1:]] - times[ends_ids[:-1]]
+    return observation_time, n_measures, mean_rr, std_rr, mean_anomal, std_anomal, starts_ids, ends_ids,\
+           anomaly_measures, anomaly_durations, intra_measures, intra_durations
+
+
+def stats_from_list_of_numpy(data_list):
+    n_elements = 0
+    values = []
+    for data in data_list:
+        if len(data) > 0:
+            values.append(np.mean(data))
+            n_elements += 1
+    values = np.array(values)
+    return np.mean(values), np.std(values), np.min(values), np.max(values)
+
+
+def measure_stats(personal_data):
+    # SEQUENCES LENGTHS
+    count_measures = []
+    # OBS TIMES
+    observation_times = []
+    # M, STD_RR & FOR ANOMALY
+    means_rr, stds_rr = [], []
+    means_anomal, stds_anomal = [], []
+    # MASKS FOR ANOMALY
+    anomalies_starts, anomalies_ends = [], []
+    # ANOMALIES DURATIONS
+    anomalies_ticks, anomalies_durations, intras_ticks, intras_durations = [], [], [], []
+    for p in personal_data:
+        observation_time, n_measures, mean_rr, std_rr, mean_anomal, std_anomal, starts_ids, ends_ids, \
+        anomaly_measures, anomaly_durations, intra_measures, intra_durations = extract_observation_data(p)
+
+        count_measures.append(n_measures)
+        observation_times.append(observation_time)
+        means_rr.append(mean_rr)
+        stds_rr.append(std_rr)
+        means_anomal.append(mean_anomal)
+        stds_anomal.append(std_anomal)
+        anomalies_starts.append(starts_ids)
+        anomalies_ends.append(ends_ids)
+        anomalies_ticks.append(anomaly_measures)
+        anomalies_durations.append(anomaly_durations)
+        intras_ticks.append(intra_measures)
+        intras_durations.append(intra_durations)
+
+    count_measures = np.array(count_measures)
+    observation_times = np.array(observation_times)
+    means_rr = np.array(means_rr)
+    stds_rr = np.array(stds_rr)
+    means_anomal = np.array(means_anomal)
+    stds_anomal = np.array(stds_anomal)
+
+    mean_rr = np.mean(means_rr)  ## TBD
+    std_rr = np.mean(stds_rr)  # TBD
+    mean_anomal_rr = np.mean(means_anomal)
+    std_anomal_rr = np.mean(stds_anomal)
+    mean_obs_time = np.mean(observation_times)
+    mean_ticks = np.mean(count_measures)
+
+    mean_an_ticks, std_an_ticks, min_an_ticks, max_an_ticks = stats_from_list_of_numpy(anomalies_ticks)
+    mean_an_dur, std_an_dur, min_an_dur, max_an_dur = stats_from_list_of_numpy(anomalies_durations)
+    mean_in_ticks, std_in_ticks, min_in_ticks, max_in_ticks = stats_from_list_of_numpy(intras_ticks)
+    mean_in_dur, std_in_dur, min_in_dur, max_in_dur = stats_from_list_of_numpy(intras_durations)
 
 
 if __name__ == '__main__':
     all_data = load_data('train.csv')
-    personalize_data(all_data)
+    # LIST OF NP ARRAYS
+    personal_data = personalize_data(all_data)
+    measure_stats(personal_data)
