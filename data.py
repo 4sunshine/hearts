@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import json
+
+import torch
 
 
 def load_data(filepath):
@@ -10,9 +13,7 @@ def load_data(filepath):
     df_sorted = df_copy.sort_values(['id', 'time'], ascending=(True, True))
     sorted_data = np.array(df_sorted.values).astype(np.int32)
     all_data = np.array(df.values).astype(np.int32)
-    max_diff = np.max(all_data - sorted_data)
-    min_diff = np.min(all_data - sorted_data)
-    assert max_diff == min_diff == 0, 'UNSORTED DATA'
+    assert (all_data == sorted_data).all(), 'UNSORTED DATA'
     return all_data
 
 
@@ -65,14 +66,15 @@ def extract_observation_data(person):
 
 
 def stats_from_list_of_numpy(data_list):
-    n_elements = 0
     values = []
+    all_dump = []
     for data in data_list:
         if len(data) > 0:
             values.append(np.mean(data))
-            n_elements += 1
+            all_dump += data.tolist()
     values = np.array(values)
-    return np.mean(values), np.std(values), np.min(values), np.max(values)
+    # ASSUME THAT ALL DATA ARRAYS CONTAIN INT DATA
+    return np.mean(values), np.std(values), int(np.min(np.array(all_dump))), int(np.max(np.array(all_dump)))
 
 
 def measure_stats(personal_data):
@@ -116,12 +118,53 @@ def measure_stats(personal_data):
     mean_anomal_rr = np.mean(means_anomal)
     std_anomal_rr = np.mean(stds_anomal)
     mean_obs_time = np.mean(observation_times)
+    std_obs_time = np.std(observation_times)
     mean_ticks = np.mean(count_measures)
+    std_ticks = np.std(count_measures)
 
     mean_an_ticks, std_an_ticks, min_an_ticks, max_an_ticks = stats_from_list_of_numpy(anomalies_ticks)
     mean_an_dur, std_an_dur, min_an_dur, max_an_dur = stats_from_list_of_numpy(anomalies_durations)
     mean_in_ticks, std_in_ticks, min_in_ticks, max_in_ticks = stats_from_list_of_numpy(intras_ticks)
     mean_in_dur, std_in_dur, min_in_dur, max_in_dur = stats_from_list_of_numpy(intras_durations)
+
+    result = {
+        'rr': [mean_rr, std_rr],
+        'anomaly_rr': [mean_anomal_rr, std_anomal_rr],
+        'observation_time': [mean_obs_time, std_obs_time],
+        'observation_ticks': [mean_ticks, std_ticks],
+        'anomaly_ticks': [mean_an_ticks, std_an_ticks],
+        'min_max_anomaly_ticks': [min_an_ticks, max_an_ticks],
+        'anomaly_time': [mean_an_dur, std_an_dur],
+        'min_max_anomaly_time': [min_an_dur, max_an_dur],
+        'intra_ticks': [mean_in_ticks, std_in_ticks],
+        'min_max_intra_ticks': [min_in_ticks, max_in_ticks],
+        'intra_time': [mean_in_dur, std_in_dur],
+        'min_max_intra_time': [min_in_dur, max_in_dur]
+    }
+
+    mask_indices = {
+        'anomaly_start_indices': anomalies_starts,
+        'anomaly_end_indices': anomalies_ends,
+        'anomalies_ticks': anomalies_ticks,
+        'anomalies_durations': anomalies_durations,
+    }
+
+    with open('data/statistics.json', 'w') as f:
+        json.dump(result, f)
+
+    torch.save(mask_indices, 'data/anomalies_masks.pth')
+
+    mean_values = [result[k][0] for k in result.keys()]
+    std_values = [result[k][1] for k in result.keys()]
+    result_df = pd.DataFrame([result.keys(), mean_values, std_values]).T
+    result_df.columns = ['Quantity', 'Mean', 'Std']
+    md_stat = result_df.to_markdown(index=False)
+    print(md_stat)
+
+    with open('data/statistics.md', 'w') as f:
+        f.write(md_stat)
+
+
 
 
 if __name__ == '__main__':
