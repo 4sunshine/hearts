@@ -20,11 +20,12 @@ if __name__ == '__main__':
     mean_delta, std_delta = delta.mean(), delta.std()
 
     plt.rcParams['animation.html'] = 'jshtml'
-    fig = plt.figure(figsize=(15, 5))
+    fig = plt.figure(figsize=(7, 3))
     ax = fig.add_subplot(111)
     plt.xlabel("Время, мин")
     plt.ylabel("R-R интервал")
     plt.title(f"Real-time ритмограмма пациента N{1}")
+    plt.tight_layout()
     fig.show()
 
     n_pionts_min = int(len(time) / max(time))
