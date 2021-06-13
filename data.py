@@ -65,12 +65,10 @@ def extract_observation_data(person):
 
 
 def stats_from_list_of_numpy(data_list):
-    n_elements = 0
     values = []
     for data in data_list:
         if len(data) > 0:
             values.append(np.mean(data))
-            n_elements += 1
     values = np.array(values)
     return np.mean(values), np.std(values), np.min(values), np.max(values)
 
