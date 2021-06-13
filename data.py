@@ -165,10 +165,8 @@ def measure_stats(personal_data):
         f.write(md_stat)
 
 
-
-
 if __name__ == '__main__':
-    all_data = load_data('train.csv')
+    all_data = load_data('data/train.csv')
     # LIST OF NP ARRAYS
     personal_data = personalize_data(all_data)
     measure_stats(personal_data)
