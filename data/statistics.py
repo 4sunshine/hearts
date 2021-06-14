@@ -119,8 +119,12 @@ def measure_stats(personal_data):
     std_anomal_rr = np.mean(stds_anomal)
     mean_obs_time = np.mean(observation_times)
     std_obs_time = np.std(observation_times)
+    max_obs_time = int(np.max(observation_times))
+    min_obs_time = int(np.min(observation_times))
     mean_ticks = np.mean(count_measures)
     std_ticks = np.std(count_measures)
+    max_ticks = int(np.max(count_measures))
+    min_ticks = int(np.min(count_measures))
 
     mean_an_ticks, std_an_ticks, min_an_ticks, max_an_ticks = stats_from_list_of_numpy(anomalies_ticks)
     mean_an_dur, std_an_dur, min_an_dur, max_an_dur = stats_from_list_of_numpy(anomalies_durations)
@@ -131,7 +135,9 @@ def measure_stats(personal_data):
         'rr': [mean_rr, std_rr],
         'anomaly_rr': [mean_anomal_rr, std_anomal_rr],
         'observation_time': [mean_obs_time, std_obs_time],
+        'min_max_obs_time': [min_obs_time, max_obs_time],
         'observation_ticks': [mean_ticks, std_ticks],
+        'min_max_obs_ticks': [min_ticks, max_ticks],
         'anomaly_ticks': [mean_an_ticks, std_an_ticks],
         'min_max_anomaly_ticks': [min_an_ticks, max_an_ticks],
         'anomaly_time': [mean_an_dur, std_an_dur],
