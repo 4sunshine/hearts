@@ -1,6 +1,6 @@
-from torchvision import transforms
 import numpy as np
 import torch
+import torchvision.transforms as transforms
 
 
 class Normalize(object):
@@ -66,3 +66,11 @@ class ToTensor(object):
         sample['labels'] = torch.from_numpy(labels)
         return sample
 
+
+def get_base_transform(cfg):
+    base_transform = transforms.Compose([
+        Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
+        PadZeros(cfg.MAX_LEN),
+        ToTensor()
+    ])
+    return base_transform
