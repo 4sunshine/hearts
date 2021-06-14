@@ -5,6 +5,7 @@ import argparse
 
 
 def plot_ecg(time, RR, target, prediction):
+    plt.clf()
     RR = RR[time != 0]
     target = target[time != 0]
     prediction = prediction[time != 0]
