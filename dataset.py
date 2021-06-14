@@ -6,6 +6,7 @@ import torch
 from sklearn.metrics import f1_score
 import matplotlib.pyplot as plt
 
+from dynamic_ecg import plot
 from models.CRNN import CRNN
 
 RR_MEAN = 641.282
@@ -51,7 +52,7 @@ class BaseDataset(Dataset):
         person = person.to(torch.float32)
         labels = labels.to(torch.float32)
 
-        person = transform(person)
+        # person = transform(person)
         return person, labels
 
 
@@ -85,14 +86,24 @@ for epoch in range(n_epoch):
         loss_val.backward()
         optimizer.step()
 
-        a = pred.detach().numpy().astype(float).flatten()
-        b = l.detach().numpy().astype(float).flatten()
-
+        a = pred.sigmoid().detach().numpy().astype(float).flatten()
+        b = l.int().detach().numpy().flatten()
+        a[a >= 0.5] = 1
+        a[a < 0.5] = 0
+        # a = int(a > 0.5)
+        # a = torch.nn.Sigmoid(a)
         # a[a < 0.5] = 0
         # a[a > 0.5] = 1
         # print(len(a[a > 0.5]))
-        print(a, b)
-        accuracy += [f1_score(a, b)]
+        # print(a, b)
+        time = p[0, 0,:,:]
+        RR = p[0, 1,:,:]
+        target = l[0]
+        predi = pred.sigmoid()[0]
+        predi[predi <= 0.75] = 0
+        predi[predi > 0.75] = 1
+        plot(time, RR, target, predi)
+        accuracy += [f1_score(a, b, average='micro')]
     all_accuracy += [np.mean(accuracy)]
     print(epoch, np.mean(accuracy))
 

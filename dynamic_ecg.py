@@ -3,6 +3,19 @@ import pandas as pd
 import numpy as np
 import argparse
 
+
+def plot_ecg(time, RR, target, prediction):
+    plt.plot(time, RR)
+    [plt.fill_between([time[i], ], 0, [RR[i], ], color='red', alpha=0.2) for i in range(len(time)) if target[i] == 1]
+    [plt.fill_between([time[i], ], 0, [RR[i], ], color='green', alpha=0.2) for i in range(len(time)) if prediction[i] == 1]
+    plt.xlabel("Время, мин")
+    plt.ylabel("R-R интервал")
+    plt.title(f"Real-time ритмограмма пациента N{1}")
+    plt.tight_layout()
+    plt.show()
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Dynamic ECG')
     parser.add_argument('-id', action='store', help='People ID', default=1)

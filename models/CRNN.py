@@ -3,8 +3,7 @@ from torch import nn
 
 
 class CRNN(nn.Module):
-    def __init__(self, num_class = 2, # len features
-                 map_to_seq_hidden=64, rnn_hidden=256, leaky_relu=False):
+    def __init__(self, num_class, map_to_seq_hidden=64, rnn_hidden=256):
         super(CRNN, self).__init__()
         self.Conv1 = nn.Conv1d(1, 60, 5, 1)
         self.act1 = nn.ReLU()
