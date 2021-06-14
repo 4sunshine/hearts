@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # parser.add_argument('-end', action='store', help='end', default=1e9)
     args = parser.parse_args()
 
-    df = pd.read_csv('train.csv')
+    df = pd.read_csv('data/train.csv')
     person = df.loc[df['id'] == args.id]
     person['time'] = person['time'] / 60000
 

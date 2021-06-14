@@ -6,7 +6,7 @@ import torch
 from sklearn.metrics import f1_score
 import matplotlib.pyplot as plt
 
-from dynamic_ecg import plot
+from dynamic_ecg import plot_ecg
 from models.CRNN import CRNN
 
 RR_MEAN = 641.282
@@ -62,11 +62,16 @@ dataset = BaseDataset('data\\train.csv', transform)
 
 indices = np.arange(len(dataset))
 np.random.shuffle(indices)
-split = int(TRAIN * len(dataset))
-train_indices, val_indices = indices[:split], indices[split:]
+split = {
+    'train': indices[:int(0.7 * len(dataset))],
+    'val': indices[int(0.7 * len(dataset)): int(0.9 * len(dataset))],
+    'test': indices[int(0.9 * len(dataset)):]
+}
+torch.save(split, 'data\\indices.pth')
 
-train_sampler = SubsetRandomSampler(train_indices)
-val_sampler = SubsetRandomSampler(val_indices)
+
+train_sampler = SubsetRandomSampler(split['train'])
+val_sampler = SubsetRandomSampler(split['val'])
 
 train_loader = DataLoader(dataset, batch_size=30, sampler=train_sampler)
 val_loader = DataLoader(dataset, batch_size=30, sampler=val_sampler)
