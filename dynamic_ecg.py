@@ -5,14 +5,20 @@ import argparse
 
 
 def plot_ecg(time, RR, target, prediction):
+    RR = RR[time != 0]
+    target = target[time != 0]
+    prediction = prediction[time != 0]
+    time = time[time != 0]
+
     plt.plot(time, RR)
     [plt.fill_between([time[i], ], 0, [RR[i], ], color='red', alpha=0.2) for i in range(len(time)) if target[i] == 1]
-    [plt.fill_between([time[i], ], 0, [RR[i], ], color='green', alpha=0.2) for i in range(len(time)) if prediction[i] == 1]
+    [plt.fill_between([time[i], ], [RR[i], ], [max(RR), ], color='green', alpha=0.2) for i in range(len(time)) if prediction[i] == 1]
     plt.xlabel("Время, мин")
     plt.ylabel("R-R интервал")
     plt.title(f"Real-time ритмограмма пациента N{1}")
     plt.tight_layout()
-    plt.show()
+    plt.savefig('image.png')
+
 
 
 

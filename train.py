@@ -1,3 +1,9 @@
+import sys
+
+import cv2
+import torchvision
+
+from dynamic_ecg import plot_ecg
 from options import get_config
 import numpy as np
 import torch
@@ -61,6 +67,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
     avg_loss = AverageMeter()
 
     for i, sample in enumerate(train_loader):
+        optimizer.zero_grad()
         person, labels = sample['person'], sample['labels']
         output = model(person.float().to(device))
         loss = criterion(output, labels.to(device))
@@ -95,6 +102,10 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
             # NEED TO HANDLE LENGTH TOO!!!
             # OUTPUT IS [BATCH x TIME] & [LABELS BATCH x TIME]
             all_outputs.append(output)
+            plot_ecg(sample['person'][0, 0, :],
+                     sample['person'][0, 1, :],
+                     labels[0],
+                     output[0])
             all_labels.append(labels.int().cpu().numpy())
 
         final_output = np.concatenate(all_outputs, axis=0).flatten()
@@ -105,6 +116,10 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
             'loss': avg_loss.avg,
             'score': score,
         }, global_step=train_step)
+        img = cv2.imread('image.png')
+        img = np.transpose(img, (2, 0, 1))
+        writer.add_image('ecg_images', img)
+
 
         print(f'Average Val Loss: {avg_loss.avg}')
         print(f'Metrics score: {score}')
