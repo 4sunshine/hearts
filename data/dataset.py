@@ -31,7 +31,6 @@ class BaseDataset(Dataset):
             np.random.shuffle(indices)
             split = int(self.cfg.TRAIN * len(personal_data))
             train_indices, val_indices = indices[:split].copy(), indices[split:].copy()
-            #print(train_indices)
             if self.is_train:
                 personal_data = list(personal_data[i] for i in train_indices)
             else:
@@ -60,8 +59,6 @@ class BaseDataset(Dataset):
         if self.transform:
             sample = self.transform(sample)
 
-        print(sample['person'].shape)
-        print(sample['labels'].shape)
         return sample
 
     def get_test_data(self, item):

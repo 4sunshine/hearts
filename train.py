@@ -9,7 +9,7 @@ from data.transforms import get_base_transform
 from torch.utils.data import DataLoader
 from models.CRNN import CRNN
 from models.loss import BCELoss
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 import os
 from eval import evaluate_metrics
 
@@ -57,24 +57,24 @@ def init_dataset(cfg):
 def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, writer):
     global train_step
     model.train()
-    scheduler.step()
     print(f'Training epoch {epoch}')
     avg_loss = AverageMeter()
 
     for i, sample in enumerate(train_loader):
         person, labels = sample['person'], sample['labels']
-        output = model(person.to(device))
+        output = model(person.float().to(device))
         loss = criterion(output, labels.to(device))
         loss.backward()
         optimizer.step()
         train_step += 1
 
         avg_loss.update(loss.item())
-        writer.add_scalars({
+        writer.add_scalars('train', {
             'loss': loss,
-            'learning_rate': scheduler.get_lr(),
-        }, tag='train', n_iter=train_step)
+            'learning_rate': scheduler.get_last_lr()[0],
+        }, global_step=train_step)
 
+    scheduler.step()
     print(f'Average Train Loss: {avg_loss.avg}')
 
 
@@ -88,23 +88,25 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
 
         for i, sample in enumerate(val_loader):
             person, labels = sample['person'], sample['labels']
-            output = model(person.to(device))
-            loss = criterion(output, labels.copy().to(device))
+            output = model(person.float().to(device))
+            loss = criterion(output, labels.to(device))
             avg_loss.update(loss.item())
             output = (output.sigmoid() > threshold).int().cpu().numpy()
             # NEED TO HANDLE LENGTH TOO!!!
             # OUTPUT IS [BATCH x TIME] & [LABELS BATCH x TIME]
             all_outputs.append(output)
-            all_labels.append(labels)
+            all_labels.append(labels.int().cpu().numpy())
 
         final_output = np.concatenate(all_outputs, axis=0).flatten()
         final_labels = np.concatenate(all_labels, axis=0).flatten()
+        print(final_labels.shape)
+        print(final_output.shape)
         score = evaluate_metrics(final_output, final_labels)
 
-        writer.add_scalars({
+        writer.add_scalars('val', {
             'loss': avg_loss.avg,
             'score': score,
-        }, tag='val', n_iter=train_step)
+        }, global_step=train_step)
 
         print(f'Average Val Loss: {avg_loss.avg}')
         print(f'Metrics score: {score}')
@@ -133,7 +135,7 @@ def main(cfg):
             print('*****')
         else:
             print(f'Epoch {epoch} passed. Val score is {val_score}.')
-            print(f'Best val score {val_score} achieved on epoch {best_epoch}.')
+            print(f'Best val score {best_val_score} achieved on epoch {best_epoch}.')
             print('*****')
 
 
