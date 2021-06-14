@@ -99,8 +99,6 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
 
         final_output = np.concatenate(all_outputs, axis=0).flatten()
         final_labels = np.concatenate(all_labels, axis=0).flatten()
-        print(final_labels.shape)
-        print(final_output.shape)
         score = evaluate_metrics(final_output, final_labels)
 
         writer.add_scalars('val', {
