@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import json
@@ -171,8 +172,18 @@ def measure_stats(personal_data):
         f.write(md_stat)
 
 
+def measure_len_analys(personal_data):
+    count_measures = [len(p) for p in personal_data]
+    plt.hist(count_measures, bins=50, density=True)
+    median = np.median(count_measures)
+    plt.ylabel('Вероятность')
+    plt.xlabel('Число измерений на человека')
+    plt.show()
+
+
 if __name__ == '__main__':
-    all_data = load_data('data/train.csv')
+    all_data = load_data('data\\train.csv')
     # LIST OF NP ARRAYS
     personal_data = personalize_data(all_data)
     measure_stats(personal_data)
+    measure_len_analys(personal_data)

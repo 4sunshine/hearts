@@ -1,27 +1,27 @@
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 import numpy as np
 import torch
 import random
+
+from data.dataset import BaseDataset
+from data.transforms import get_base_transform
+from options import get_config
+from torch.utils.data import DataLoader
+from models.CRNN import CRNN
+from models.loss import BCELoss
+import os
+from eval import evaluate_metrics, AverageMeter
+from dynamic_ecg import FigPlotter
+
 
 # FIX RANDOM SEED
 np.random.seed(42)
 random.seed(42)
 torch.manual_seed(42)
 
-from data.dataset import BaseDataset
-from data.transforms import get_base_transform
-from torch.utils.data import DataLoader
-from models.CRNN import CRNN
-from models.loss import BCELoss
-from torch.utils.tensorboard import SummaryWriter
-import os
-from eval import evaluate_metrics, AverageMeter
-from dynamic_ecg import FigPlotter
-from options import get_config
-from tqdm import tqdm
-
-
-train_step = 0
-plotter = FigPlotter()
+TRAIN_STEP = 0
+PLOTTER = FigPlotter()
 
 
 def get_model(cfg):
@@ -45,64 +45,79 @@ def init_dataset(cfg):
 
 
 def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, writer):
-    global train_step
-    model.train()
     print(f'Training epoch {epoch}')
+    global TRAIN_STEP
+    model.train()
     avg_loss = AverageMeter()
 
     for i, sample in tqdm(enumerate(train_loader), total=len(train_loader)):
-        optimizer.zero_grad()
+        # BATCH CROP LEN
         person, labels = sample['person'], sample['labels']
+        max_len_nonzro_seq_in_batch = max([len(p[0][p[0] != 0]) for p in person])
+        max_len_nonzro_seq_in_batch += (4 - max_len_nonzro_seq_in_batch % 4) # paddind for Maxpool
+        person = person[:, :, :max_len_nonzro_seq_in_batch]
+        labels = labels[:, :max_len_nonzro_seq_in_batch]
+
+        # FORWARD
         output = model(person.float().to(device))
+        # LOSS
         loss = criterion(output, labels.to(device))
-        loss.backward()
-        optimizer.step()
-        train_step += 1
-
         avg_loss.update(loss.item())
+        # BAKCWARD
+        optimizer.zero_grad()
+        loss.backward()
+        # STEP
+        optimizer.step()
+        TRAIN_STEP += 1
 
-        writer.add_scalar('train/loss', avg_loss.avg, global_step=train_step)
-        writer.add_scalar('train/learning_rate', scheduler.get_last_lr()[0], global_step=train_step)
-
-    scheduler.step()
+        writer.add_scalar('train/loss', avg_loss.avg, global_step=TRAIN_STEP)
+        writer.add_scalar('train/learning_rate', scheduler.get_last_lr()[0], global_step=TRAIN_STEP)
     print(f'Average Train Loss: {avg_loss.avg}')
 
 
 def validate(model, val_loader, criterion, epoch, device, writer, threshold):
+    print(f'Validate epoch {epoch}')
     with torch.no_grad():
         model.eval()
-        print(f'Validate epoch {epoch}')
         avg_loss = AverageMeter()
         all_outputs = []
         all_labels = []
 
         for i, sample in tqdm(enumerate(val_loader), total=len(val_loader)):
+            # BATCH CROP LEN
             person, labels = sample['person'], sample['labels']
+            max_len_nonzro_seq_in_batch = max([len(p[0][p[0] != 0]) for p in person])
+            max_len_nonzro_seq_in_batch += (4 - max_len_nonzro_seq_in_batch % 4) # paddind for Maxpool
+            person = person[:, :, :max_len_nonzro_seq_in_batch]
+            labels = labels[:, :max_len_nonzro_seq_in_batch]
+
+            # FORWARD
             output = model(person.float().to(device))
+            # LOSS
             loss = criterion(output, labels.to(device))
             avg_loss.update(loss.item())
-            output = (output.sigmoid() > threshold).int().cpu().numpy()
-            # NEED TO HANDLE LENGTH TOO!!!
+            # TODO: NEED TO HANDLE LENGTH TOO!!!
             # OUTPUT IS [BATCH x TIME] & [LABELS BATCH x TIME]
-            all_outputs.append(output)
-            plotter.plot_ecg(sample['person'][0, 0, :],
-                             sample['person'][0, 1, :],
+            output = (output.sigmoid() > threshold).int().cpu().numpy()
+            labels = labels.int().cpu().numpy()
+            PLOTTER.plot_ecg(person[0, 0, :],
+                             person[0, 1, :],
                              labels[0],
                              output[0],
                              sample['person_id'][0])
-            all_labels.append(labels.int().cpu().numpy())
 
-        final_output = np.concatenate(all_outputs, axis=0).flatten()
-        final_labels = np.concatenate(all_labels, axis=0).flatten()
-        score = evaluate_metrics(final_output, final_labels)
+            all_outputs += list(output.flatten())
+            all_labels += list(labels.flatten())
+
+        print(f"final shapes: labels = {len(all_outputs)}, output = {len(all_labels)}")
+        score = evaluate_metrics(all_outputs, all_labels)
+        print(f'Average Val Loss: {avg_loss.avg}')
+        print(f'Metrics score: {score}')
 
         writer.add_scalar('val/loss', avg_loss.avg, global_step=epoch)
         writer.add_scalar('val/score', score, global_step=epoch)
-        writer.add_figure(f'val/rr', plotter.get_figures(), global_step=epoch)
-        plotter.refresh()
-
-        print(f'Average Val Loss: {avg_loss.avg}')
-        print(f'Metrics score: {score}')
+        writer.add_figure(f'val/rr', PLOTTER.get_figures(), global_step=epoch)
+        PLOTTER.refresh()
 
         return avg_loss.avg, score
 
@@ -111,7 +126,7 @@ def main(cfg):
     train_loader, val_loader = init_dataset(cfg)
     model = get_model(cfg)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda e: 1.) # CONSTANT LEARNING RATE
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda e: 1.)  # CONSTANT LEARNING RATE
     criterion = BCELoss()
     save_dir = os.path.join('experiments', cfg.experiment_name)
     best_val_score = 0.
@@ -120,6 +135,7 @@ def main(cfg):
     for epoch in range(cfg.max_epoch):
         train(model, train_loader, criterion, scheduler, optimizer, epoch, cfg.device, cfg.writer)
         val_loss, val_score = validate(model, val_loader, criterion, epoch, cfg.device, cfg.writer, cfg.threshold)
+        scheduler.step()
         if val_score >= best_val_score:
             torch.save(model.state_dict(), os.path.join(save_dir, 'best_val_score.pth'))
             print(f'Best val score {val_score} achieved on epoch {epoch}.')
