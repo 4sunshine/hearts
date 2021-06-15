@@ -1,6 +1,7 @@
 # Hearts
 
 ## IdeaFix (performer)
+* Fix max_len_nonzro_seq_in_batch
 * Change LR: Exponential decay scheduler (AS)
 * More simple model (MI)
 
