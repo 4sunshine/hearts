@@ -23,8 +23,7 @@ class BaseDataset(Dataset):
         all_data = load_data(file)
         personal_data = personalize_data(all_data)
         if split_file is not None:
-            with open(split_file, 'r') as f:
-                splits = json.load(f)
+            splits = torch.load(split_file)
             personal_data = personal_data[splits['train']] if self.is_train else personal_data[splits['val']]
         else:
             indices = np.arange(len(personal_data), dtype=np.int32)
