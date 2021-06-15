@@ -52,12 +52,12 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
 
     for i, sample in tqdm(enumerate(train_loader), total=len(train_loader)):
         # BATCH CROP LEN
-        person, labels = sample['person'], sample['labels']
-        max_len_nonzro_seq_in_batch = max([len(p[0][p[0] != 0]) for p in person])
-        max_len_nonzro_seq_in_batch += (4 - max_len_nonzro_seq_in_batch % 4) # paddind for Maxpool
-        person = person[:, :, :max_len_nonzro_seq_in_batch]
-        labels = labels[:, :max_len_nonzro_seq_in_batch]
-
+        person, labels, seq_lens = sample['person'], sample['labels'], sample['end_pos']
+        max_seq_len = max(seq_lens)
+        if max_seq_len % 4:
+            max_seq_len += (4 - max_seq_len % 4)
+        person = person[..., : max_seq_len]
+        labels = labels[..., : max_seq_len]
         # FORWARD
         output = model(person.float().to(device))
         # LOSS
@@ -86,11 +86,12 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
 
         for i, sample in tqdm(enumerate(val_loader), total=len(val_loader)):
             # BATCH CROP LEN
-            person, labels = sample['person'], sample['labels']
-            max_len_nonzro_seq_in_batch = max([len(p[0][p[0] != 0]) for p in person])
-            max_len_nonzro_seq_in_batch += (4 - max_len_nonzro_seq_in_batch % 4) # paddind for Maxpool
-            person = person[:, :, :max_len_nonzro_seq_in_batch]
-            labels = labels[:, :max_len_nonzro_seq_in_batch]
+            person, labels, seq_lens = sample['person'], sample['labels'], sample['end_pos']
+            max_seq_len = max(seq_lens)
+            if max_seq_len % 4:
+                max_seq_len += (4 - max_seq_len % 4)
+            person = person[..., : max_seq_len]
+            labels = labels[..., : max_seq_len]
 
             # FORWARD
             output = model(person.float().to(device))
