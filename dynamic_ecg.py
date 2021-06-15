@@ -14,7 +14,7 @@ class FigPlotter:
         time = time[time != 0]
 
         plt.plot(time, RR)
-        [plt.fill_between([time[i], ], 0, [RR[i], ], color='red', alpha=0.2) for i in range(len(time)) if target[i] == 1]
+        [plt.fill_between([time[i], ], [min(RR), ], [RR[i], ], color='red', alpha=0.2) for i in range(len(time)) if target[i] == 1]
         [plt.fill_between([time[i], ], [RR[i], ], [max(RR), ], color='green', alpha=0.2) for i in range(len(time)) if prediction[i] == 1]
         plt.xlabel("Время, мин")
         plt.ylabel("R-R интервал")

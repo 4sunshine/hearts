@@ -2,11 +2,10 @@ from torch.utils.data import Dataset
 from data.statistics import personalize_data, load_data
 import numpy as np
 import torch
-import json
 
 
 class BaseDataset(Dataset):
-    def __init__(self, is_train, transform, cfg, file='data/train.csv', split_file=None):
+    def __init__(self, is_train, transform, cfg, file='data/train.csv', split_file='data/indices.pth'):
         self.is_train = is_train
         self.cfg = cfg
         self.data = self.load_data(file, split_file)
@@ -18,7 +17,8 @@ class BaseDataset(Dataset):
         personal_data = personalize_data(all_data)
         if split_file is not None:
             splits = torch.load(split_file)
-            personal_data = personal_data[splits['train']] if self.is_train else personal_data[splits['val']]
+            personal_data = np.array(personal_data)[splits['train']] if self.is_train \
+                else np.array(personal_data)[splits['val']]
         else:
             indices = np.arange(len(personal_data), dtype=np.int32)
             np.random.shuffle(indices)
