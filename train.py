@@ -1,43 +1,29 @@
-import sys
-
-import cv2
-import torchvision
-
-from dynamic_ecg import plot_ecg
-from options import get_config
 import numpy as np
 import torch
+import random
+
 # FIX RANDOM SEED
+from torch.utils.tensorboard import SummaryWriter
+
+from options import get_config
+
 np.random.seed(42)
+random.seed(42)
+torch.manual_seed(42)
 
 from data.dataset import BaseDataset
 from data.transforms import get_base_transform
 from torch.utils.data import DataLoader
 from models.CRNN import CRNN
 from models.loss import BCELoss
-from torch.utils.tensorboard import SummaryWriter
 import os
-from eval import evaluate_metrics
+from eval import evaluate_metrics, AverageMeter
+from dynamic_ecg import FigPlotter
+from tqdm import tqdm
+
 
 train_step = 0
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
+plotter = FigPlotter()
 
 
 def get_model(cfg):
@@ -66,7 +52,8 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
     print(f'Training epoch {epoch}')
     avg_loss = AverageMeter()
 
-    for i, sample in enumerate(train_loader):
+
+    for i, sample in tqdm(enumerate(train_loader), total=len(train_loader)):
         optimizer.zero_grad()
         person, labels = sample['person'], sample['labels']
         output = model(person.float().to(device))
@@ -76,10 +63,9 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
         train_step += 1
 
         avg_loss.update(loss.item())
-        writer.add_scalars('train', {
-            'loss': loss,
-            'learning_rate': scheduler.get_last_lr()[0],
-        }, global_step=train_step)
+
+        writer.add_scalar('train/loss', avg_loss.avg, global_step=train_step)
+        writer.add_scalar('train/learning_rate', scheduler.get_last_lr()[0], global_step=train_step)
 
     scheduler.step()
     print(f'Average Train Loss: {avg_loss.avg}')
@@ -93,7 +79,7 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
         all_outputs = []
         all_labels = []
 
-        for i, sample in enumerate(val_loader):
+        for i, sample in tqdm(enumerate(val_loader), total=len(val_loader)):
             person, labels = sample['person'], sample['labels']
             output = model(person.float().to(device))
             loss = criterion(output, labels.to(device))
@@ -102,10 +88,12 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
             # NEED TO HANDLE LENGTH TOO!!!
             # OUTPUT IS [BATCH x TIME] & [LABELS BATCH x TIME]
             all_outputs.append(output)
-            plot_ecg(sample['person'][0, 0, :],
-                     sample['person'][0, 1, :],
-                     labels[0],
-                     output[0])
+
+            plotter.plot_ecg(sample['person'][0, 0, :],
+                             sample['person'][0, 1, :],
+                             labels[0],
+                             output[0],
+                             sample['person_id'][0])
             all_labels.append(labels.int().cpu().numpy())
 
         final_output = np.concatenate(all_outputs, axis=0).flatten()
@@ -114,13 +102,11 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
         print(final_output.shape)
         score = evaluate_metrics(final_output, final_labels)
 
-        writer.add_scalars('val', {
-            'loss': avg_loss.avg,
-            'score': score,
-        }, global_step=train_step)
-        img = cv2.imread('image.png')
-        img = np.transpose(img, (2, 0, 1))
-        writer.add_image(f'my_image{i}', img, 0)
+
+        writer.add_scalar('val/loss', avg_loss.avg, global_step=epoch)
+        writer.add_scalar('val/score', score, global_step=epoch)
+        writer.add_figure(f'val/rr', plotter.get_figures(), global_step=epoch)
+        plotter.refresh()
 
         print(f'Average Val Loss: {avg_loss.avg}')
         print(f'Metrics score: {score}')
