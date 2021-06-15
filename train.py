@@ -72,6 +72,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
 
         writer.add_scalar('train/loss', avg_loss.avg, global_step=TRAIN_STEP)
         writer.add_scalar('train/learning_rate', scheduler.get_last_lr()[0], global_step=TRAIN_STEP)
+    scheduler.step()
     print(f'Average Train Loss: {avg_loss.avg}')
 
 
@@ -116,7 +117,7 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
 
         writer.add_scalar('val/loss', avg_loss.avg, global_step=epoch)
         writer.add_scalar('val/score', score, global_step=epoch)
-        writer.add_figure(f'val/rr', PLOTTER.get_figures(), global_step=epoch)
+        writer.add_figure('val/rr', PLOTTER.get_figures(), global_step=epoch)
         PLOTTER.refresh()
 
         return avg_loss.avg, score
@@ -135,7 +136,6 @@ def main(cfg):
     for epoch in range(cfg.max_epoch):
         train(model, train_loader, criterion, scheduler, optimizer, epoch, cfg.device, cfg.writer)
         val_loss, val_score = validate(model, val_loader, criterion, epoch, cfg.device, cfg.writer, cfg.threshold)
-        scheduler.step()
         if val_score >= best_val_score:
             torch.save(model.state_dict(), os.path.join(save_dir, 'best_val_score.pth'))
             print(f'Best val score {val_score} achieved on epoch {epoch}.')
