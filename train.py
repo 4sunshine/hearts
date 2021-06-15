@@ -5,14 +5,16 @@ import torch
 import random
 
 from data.dataset import BaseDataset
-from data.transforms import get_base_transform
+from data.transforms import get_base_transform, get_sequence_transform
 from options import get_config
 from torch.utils.data import DataLoader
-from models.CRNN import CRNN
+from models.CRNN import CRNN, CRNN_Sequential
 from models.loss import BCELoss
 import os
 from eval import evaluate_metrics, AverageMeter
 from dynamic_ecg import FigPlotter
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
+import torch.nn.functional as F
 
 
 # FIX RANDOM SEED
@@ -27,6 +29,8 @@ PLOTTER = FigPlotter()
 def get_model(cfg):
     if cfg.model == 'crnn':
         model = CRNN(num_class=1)
+    elif cfg.model == 'crnn_seq':
+        model = CRNN_Sequential(num_class=1)
     else:
         raise NotImplementedError(f'Model {cfg.model} currently not implemented')
     if cfg.resume:
@@ -35,12 +39,12 @@ def get_model(cfg):
 
 
 def init_dataset(cfg):
-    train_transform = get_base_transform(cfg)
-    val_transform = get_base_transform(cfg)
+    train_transform = get_sequence_transform(cfg)
+    val_transform = get_sequence_transform(cfg)
     train_set = BaseDataset(is_train=True, transform=train_transform, cfg=cfg)
     val_set = BaseDataset(is_train=False, transform=val_transform, cfg=cfg)
-    train_loader = DataLoader(train_set, batch_size=cfg.batch_size, shuffle=True, num_workers=0)
-    val_loader = DataLoader(val_set, batch_size=cfg.batch_size, shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_set, batch_size=cfg.batch_size, shuffle=True, num_workers=0, collate_fn=lambda x: x)
+    val_loader = DataLoader(val_set, batch_size=cfg.batch_size, shuffle=False, num_workers=0, collate_fn=lambda x: x)
     return train_loader, val_loader
 
 
@@ -52,16 +56,26 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
 
     for i, sample in tqdm(enumerate(train_loader), total=len(train_loader)):
         # BATCH CROP LEN
-        person, labels, seq_lens = sample['person'], sample['labels'], sample['end_pos']
-        max_seq_len = max(seq_lens)
-        if max_seq_len % 4:
-            max_seq_len += (4 - max_seq_len % 4)
-        person = person[..., : max_seq_len]
-        labels = labels[..., : max_seq_len]
+        person = [s['person'] for s in sample]
+        labels = [s['labels'] for s in sample]
+        seq_lens = [s['end_pos'] for s in sample]
+        person = pad_sequence(person, batch_first=True)
+        if max(seq_lens) % 4:
+            person = F.pad(person, pad=(0, 0, 0, int(max(seq_lens) % 4)), mode='constant', value=0)
+        person = person.permute(0, 2, 1)
+        print(person.shape)
+        #person, labels, seq_lens = sample['person'], sample['labels'], sample['end_pos']
+        # max_seq_len = max(seq_lens)
+        # if max_seq_len % 4:
+        #     max_seq_len += (4 - max_seq_len % 4)
+        # person = person[..., : max_seq_len]
+        # labels = labels[..., : max_seq_len]
         # FORWARD
-        output = model(person.float().to(device))
+        output = model(person.float().to(device), seq_lens)
+        #output = pack_padded_sequence(output, seq_lens, batch_first=True, enforce_sorted=False)
+        labels = pad_sequence(labels, batch_first=True)
         # LOSS
-        loss = criterion(output, labels.to(device))
+        loss = criterion(output, labels)
         avg_loss.update(loss.item())
         # BAKCWARD
         optimizer.zero_grad()

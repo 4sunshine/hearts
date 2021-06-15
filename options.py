@@ -4,7 +4,7 @@ import argparse
 def get_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('experiment_name', type=str, help='Experiment_name')
-    parser.add_argument('--model', default='crnn', type=str, choices=['crnn'])
+    parser.add_argument('--model', default='crnn_seq', type=str, choices=['crnn', 'crnn_seq'])
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--resume_path', type=str)
