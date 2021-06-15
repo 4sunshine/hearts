@@ -1,5 +1,13 @@
 # Hearts
 
+## IdeaFix (performer)
+* Change LR: Exponential decay scheduler (AS)
+* More simple model (MI)
+
+## QA
+* Fscore params: average{‘micro’, ‘macro’, ‘samples’,’weighted’, ‘binary’} ? 
+
+## Files
 * `dynamic_ecg.py` - building a labeled ECG-line over time. Command line arguments: *id* - patient id
 
 <p align="center">
