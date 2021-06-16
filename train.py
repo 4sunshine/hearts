@@ -5,7 +5,7 @@ import torch
 import random
 
 from data.dataset import BaseDataset
-from data.transforms import get_base_transform, get_sequence_transform
+from data.transforms import get_base_transform, get_sequence_transform, get_base_sequence_transform
 from options import get_config
 from torch.utils.data import DataLoader
 from models.CRNN import CRNN
@@ -38,7 +38,7 @@ def get_model(cfg):
 
 def init_dataset(cfg):
     train_transform = get_sequence_transform(cfg)
-    val_transform = get_sequence_transform(cfg)
+    val_transform = get_base_sequence_transform(cfg)
     train_set = BaseDataset(is_train=True, transform=train_transform, cfg=cfg)
     val_set = BaseDataset(is_train=False, transform=val_transform, cfg=cfg)
     train_loader = DataLoader(train_set, batch_size=cfg.batch_size, shuffle=True, num_workers=0, collate_fn=lambda x: x)
@@ -75,9 +75,11 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
 
         # FORWARD
         output = model(person.float().to(device))[..., : max_seq_len]
+
         # LOSS
         loss = criterion(output, labels.to(device), masks)
         avg_loss.update(loss.item())
+
         # BAKCWARD
         optimizer.zero_grad()
         loss.backward()
