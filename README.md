@@ -4,6 +4,7 @@
 * Fix max_len_nonzro_seq_in_batch
 * Change LR: Exponential decay scheduler (AS)
 * More simple model (MI)
+* Random crop, Normalize individually, Add smooth input, Border Loss (AS)
 
 ## QA
 * Fscore params: average{‘micro’, ‘macro’, ‘samples’,’weighted’, ‘binary’} ? 

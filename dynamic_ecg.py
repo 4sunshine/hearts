@@ -8,11 +8,6 @@ class FigPlotter:
     @staticmethod
     def plot_ecg(time, RR, target, prediction, person_id):
         plt.figure()
-        RR = RR[time != 0]
-        target = target[time != 0]
-        prediction = prediction[time != 0]
-        time = time[time != 0]
-
         plt.plot(time, RR)
         [plt.fill_between([time[i], ], [min(RR), ], [RR[i], ], color='red', alpha=0.2) for i in range(len(time)) if target[i] == 1]
         [plt.fill_between([time[i], ], [RR[i], ], [max(RR), ], color='green', alpha=0.2) for i in range(len(time)) if prediction[i] == 1]

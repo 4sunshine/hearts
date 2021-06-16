@@ -142,8 +142,7 @@ def main(cfg):
     model = get_model(cfg)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda e: 1.)  # CONSTANT LEARNING RATE
-    #criterion = BCELoss()
-    criterion = TverskyLoss()
+    criterion = BCELoss()
     save_dir = os.path.join('experiments', cfg.experiment_name)
     best_val_score = 0.
     best_epoch = 0
