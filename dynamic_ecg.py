@@ -49,8 +49,8 @@ class FigPlotter:
         time = time[args]
 
         dif = np.diff(args)
-        dif[dif < 10] = 0
-        dif[dif > 10] = 1
+        dif[dif <= 1] = 0
+        dif[dif > 1] = 1
 
         num_covid = sum(dif) + 1    # first covid
         fig, axs = plt.subplots(3, num_covid)
@@ -71,6 +71,7 @@ class FigPlotter:
             axs[2, i].plot(t[1:len(rr) - 1], derivative_2)
 
         plt.tight_layout()
+        plt.savefig(f'covid {id}')
 
 
     @staticmethod
@@ -89,15 +90,16 @@ class FigPlotter:
 if __name__ == '__main__':
     df = pd.read_csv('data/train.csv')
 
-    for id in [1, ]:
+    for id in set(df['id']):
         person = df.loc[df['id'] == id]
         time, RR, label = person['time'].to_numpy(), person['x'].to_numpy(), person['y'].to_numpy()
-        FigPlotter.plot_ecg(time, RR, label, np.zeros(len(RR)), id)
-        FigPlotter.show()
-        FigPlotter.refresh()
+        # FigPlotter.plot_ecg(time, RR, label, np.zeros(len(RR)), id)
+        # FigPlotter.show()
+        # FigPlotter.refresh()
         FigPlotter.plot_covid(time, RR, label, id)
-        FigPlotter.show()
+        # FigPlotter.show()
         FigPlotter.refresh()
+        print(id)
 
     # parser = argparse.ArgumentParser(description='Dynamic ECG')
     # parser.add_argument('-id', action='store', help='People ID', default=1)
