@@ -45,6 +45,7 @@ class BaseDataset(Dataset):
         sample = {
             'person': person,
             'labels': labels,
+            'mask': np.ones_like(labels),
             # 'anomalies_starts': anomaly_starts,
             # 'anomalies_ends': anomaly_ends,
             'start_pos': 0,
@@ -61,6 +62,7 @@ class BaseDataset(Dataset):
         sample = {
             'person': person,
             'labels': labels,
+            'mask': np.ones_like(labels),
             'start_pos': 0,
             'end_pos': len(labels),
             'person_id': person_id

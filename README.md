@@ -1,5 +1,15 @@
 # Hearts
 
+## IdeaFix (performer)
+* Fix max_len_nonzro_seq_in_batch
+* Change LR: Exponential decay scheduler (AS)
+* More simple model (MI)
+* Random crop, Normalize individually, Add smooth input, Border Loss (AS)
+
+## QA
+* Fscore params: average{‘micro’, ‘macro’, ‘samples’,’weighted’, ‘binary’} ? 
+
+## Files
 * `dynamic_ecg.py` - building a labeled ECG-line over time. Command line arguments: *id* - patient id
 
 <p align="center">
