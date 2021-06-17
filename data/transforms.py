@@ -139,7 +139,7 @@ def get_base_transform(cfg):
 def get_sequence_transform(cfg):
     base_transform = transforms.Compose([
         Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
-        RandomCrop(probability=0.3),
+        #RandomCrop(probability=0.3),
         ToSequenceTensor()
     ])
     return base_transform
