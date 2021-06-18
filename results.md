@@ -15,4 +15,7 @@ Default 3GELU CRNN + Final Tanh + RandomCrop + RandomNoise: don't converge
 BINARY SCORES -> CORRELATES WITH AVERAGE
 kek_gelu!!! Default 3GELU CRNN + Final ReLU + RandomCrop + RandomNoise: 0.8098 epoch 140
 kek_gelu!!! Default 3GELU CRNN + Final ReLU + RandomCrop + RandomNoise + Random Reflect: 0.7837 epoch 140  
-
+unet_cuda_all_aug UNET GELU + RandCrop + RandNoise + Random_Refl: 0.7976 epoch 184 
+unet_cuda_no_aug UNET GELU + No aug:0.7157 epoch 352
+unet_cuda_all_aug UNET ReLU + No aug:0.68 epoch ...  
+unet_cuda_relu_aug UNET ReLU + RandCrop + RandNoise + Random_Refl: 0.7984 epoch 390  
