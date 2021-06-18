@@ -60,6 +60,17 @@ class PadZeros(object):
         return sample
 
 
+class SigmaCrop(object):
+
+    def __call__(self, sample):
+        person, labels, mask = sample['person'], sample['labels'], sample['mask']
+        mean, std = person.mean(), person.std()
+        person[1][person[1] > mean + std] = mean + std
+        person[1][person[1] < mean - std] = mean - std
+        sample['person'] = person
+        return sample
+
+
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
     def __call__(self, sample):
@@ -92,6 +103,7 @@ def get_base_transform(cfg):
 def get_sequence_transform(cfg):
     base_transform = transforms.Compose([
         Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
+        SigmaCrop(),
         ToSequenceTensor()
     ])
     return base_transform
