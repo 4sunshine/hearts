@@ -7,3 +7,6 @@ Default CRNN (Baseline) AdamW + Random Crop: 0.8498 Epoch 63
 Default CRNN + Final ReLU + (Dropout) + Random Crop: 0.884 Epoch 86  
 Default CRNN (Baseline) + (Dropout) + Random Crop: 0.8827 Epoch 179 -> NEED TO TRAIN MORE THAN 200  
 1LSTM CRNN + Random Crop: 0.8522 Epoch 95
+Default CRNN + Final ReLU + RandomCrop + RandomNoise: 0.8824 epoch 97
+Default 3GELU CRNN + Final ReLU + RandomCrop + RandomNoise: 0.8946 epoch 140
+

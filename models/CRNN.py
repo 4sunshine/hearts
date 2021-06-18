@@ -9,6 +9,7 @@ class CRNN(nn.Module):
         self.Conv1 = nn.Conv1d(1, 60, 5, 1, padding=2)
         self.BN1 = nn.BatchNorm1d(60)
         self.act1 = nn.ReLU()
+        self.act_g = nn.GELU()
 
         self.Conv2 = nn.Conv1d(60, 80, 3, 1, padding=1)
         self.BN2 = nn.BatchNorm1d(80)
@@ -24,25 +25,26 @@ class CRNN(nn.Module):
 
         #self.map_to_seq = nn.Linear(128 * 912, map_to_seq_hidden) # c * l
         self.bi_lstm_1 = nn.LSTM(128, rnn_hidden, bidirectional=True)
-        #self.bi_lstm_2 = nn.LSTM(2 * rnn_hidden, 128, bidirectional=True)
-        self.dense = nn.Linear(2 * rnn_hidden, num_class)
+        self.bi_lstm_2 = nn.LSTM(2 * rnn_hidden, 128, bidirectional=True)
+        self.dense = nn.Linear(2 * 128, num_class)
         self.up = nn.ConvTranspose1d(1, 1, 4, 4)
+        self.act_tanh = nn.Tanh()
 
     def forward(self, x):
         x = x[:, 1:, :]
         x = self.Conv1(x)
         x = self.BN1(x)
-        x = self.act1(x)
+        x = self.act_g(x)
 
         x = self.Conv2(x)
         x = self.BN2(x)
-        x = self.act2(x)
+        x = self.act_g(x)
         x = self.mp1(x)
         #x = self.do1(x)
 
         x = self.Conv3(x)
         x = self.BN3(x)
-        x = self.act3(x)
+        x = self.act_g(x)
         x = self.mp2(x)
         #x = self.do2(x)
 
@@ -58,7 +60,7 @@ class CRNN(nn.Module):
         # x: SEQ_LEN, BATCH, N_FEATURES -> BATCH, SEQ_LEN, N_CLASS = (1)
         x = x.permute(1, 0, 2)
         x = self.dense(x)
-        #x = self.act1(x)
+        x = self.act_tanh(x)
         x = x.permute(0, 2, 1)
         x = self.up(x)
         x.squeeze_(1)

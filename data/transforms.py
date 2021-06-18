@@ -147,43 +147,44 @@ class RandomNoise(object):
 
             min_amplitude = min(amplitudes)
             noise_amplitude = self.coeff * min_amplitude
-            noise = np.random.normal(1, 1, len(labels))
+            noise = noise_amplitude * np.random.normal(0, 1, len(labels))
             noise = np.clip(noise, - 2 * noise_amplitude, 2 * noise_amplitude)
             person[1, :] += noise
+            time_warp = person[1, 1:]
+            measure_time = np.cumsum(time_warp)
+            person[0, 1:] = measure_time
             sample['person'] = person
-            #
-            #
-            # anomaly_inds = np.concatenate(ranges)
-            #
-            # n_anomalies = len(start_inds)
-            # first_anomaly_to_hold = np.random.randint(n_anomalies)
-            # last_anomaly_to_hold = np.random.randint(first_anomaly_to_hold, n_anomalies)
-            # if first_anomaly_to_hold == 0:
-            #     if start_inds[0] > 0:
-            #         crop_begin = np.random.randint(start_inds[0])
-            #     else:
-            #         crop_begin = 0
-            # else:
-            #     crop_begin = np.random.randint(end_inds[first_anomaly_to_hold - 1], start_inds[first_anomaly_to_hold])
-            # if last_anomaly_to_hold == (n_anomalies - 1):
-            #     if end_inds[-1] == seq_len:
-            #         crop_end = seq_len
-            #     else:
-            #         crop_end = np.random.randint(end_inds[-1], seq_len)
-            # else:
-            #     crop_end = np.random.randint(end_inds[last_anomaly_to_hold],
-            #                                  start_inds[last_anomaly_to_hold + 1])
-            # crop_length = crop_end - crop_begin
-            # if crop_length < 7:
-            #     return sample
-            # sample['person'] = person[:, crop_begin: crop_end]
-            # sample['labels'] = labels[crop_begin: crop_end]
-            # sample['mask'] = mask[crop_begin: crop_end]
-            # start_inds = start_inds[first_anomaly_to_hold: last_anomaly_to_hold + 1]
-            # end_inds = end_inds[first_anomaly_to_hold: last_anomaly_to_hold + 1]
-            # sample['start_inds'] = start_inds - crop_begin
-            # sample['end_inds'] = end_inds - crop_begin
-            # sample['end_pos'] = crop_length
+            return sample
+        else:
+            return sample
+
+
+class RandomReflect(object):
+    """Convert ndarrays in sample to Tensors."""
+    # !!! APPLY IT ONLY AFTER ALL OTHER AUGMENTATIONS
+    def __init__(self, probability, coefficient):
+        assert 0 <= probability <= 1
+        self.probability = probability
+
+    def __call__(self, sample):
+        if np.random.rand() < self.probability:
+            person, labels, mask = sample['person'], sample['labels'], sample['mask']
+            start_inds = sample['anomalies_starts']
+            end_inds = sample['anomalies_ends']
+            amplitudes = []
+            for st, en in zip(start_inds, end_inds):
+                current_anomaly = person[1, st: en]
+                amplitudes.append(np.max(current_anomaly) - np.min(current_anomaly))
+
+            min_amplitude = min(amplitudes)
+            noise_amplitude = self.coeff * min_amplitude
+            noise = noise_amplitude * np.random.normal(0, 1, len(labels))
+            noise = np.clip(noise, - 2 * noise_amplitude, 2 * noise_amplitude)
+            person[1, :] += noise
+            time_warp = person[1, 1:]
+            measure_time = np.cumsum(time_warp)
+            person[0, 1:] = measure_time
+            sample['person'] = person
             return sample
         else:
             return sample
@@ -200,9 +201,9 @@ def get_base_transform(cfg):
 
 def get_sequence_transform(cfg):
     base_transform = transforms.Compose([
-        # Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
-        RandomNoise(probability=0.99, coefficient=0.2),
-        # RandomCrop(probability=0.3),
+        Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
+        RandomNoise(probability=0.3, coefficient=0.2),
+        RandomCrop(probability=0.3),
         ToSequenceTensor()
     ])
     return base_transform
