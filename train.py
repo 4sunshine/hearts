@@ -31,7 +31,7 @@ def get_model(cfg):
     if cfg.model == 'crnn':
         model = CRNN(num_class=1)
     if cfg.model == 'unet':
-        model = UNet(n_channels=1, n_classes=2)
+        model = UNet(n_channels=1, n_classes=1)
     else:
         raise NotImplementedError(f'Model {cfg.model} currently not implemented')
     if cfg.resume:
@@ -78,6 +78,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
 
         # FORWARD
         output = model(person.float().to(device))[..., : max_seq_len]
+        print(output.size())
         # LOSS
         loss = criterion(output, labels.to(device), masks)
         avg_loss.update(loss.item())
@@ -92,6 +93,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
         writer.add_scalar('train/learning_rate', scheduler.get_last_lr()[0], global_step=TRAIN_STEP)
     scheduler.step()
     print(f'Average Train Loss: {avg_loss.avg}')
+
 
 
 def validate(model, val_loader, criterion, epoch, device, writer, threshold):
@@ -118,6 +120,7 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
             masks = masks.cpu().numpy()
 
             current_seq_len = sample[0]['end_pos']
+
             PLOTTER.plot_ecg(person[0, 0, : current_seq_len],
                              person[0, 1, : current_seq_len],
                              labels[0][: current_seq_len],
