@@ -72,7 +72,7 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True):
+    def __init__(self, n_channels=1, n_classes=2, bilinear=True):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -103,62 +103,62 @@ class UNet(nn.Module):
         logits = self.outc(x)
         return logits
 
-
-import random
-from tqdm import tqdm
-import numpy as np
-import torch
-
-
-if __name__ == '__main__':
-    np.random.seed(42)
-    random.seed(1001)
-    torch.manual_seed(1002)
-
-    net = UNet(n_channels=1, n_classes=5, bilinear=True)
-    optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-3, weight_decay=1e-8, momentum=0.9)
-    criterion = torch.nn.CrossEntropyLoss()
-
-    dataset = WheatDS('dataset.json')
-    train_size = 0.6
-    batch_size = 1
-    train_loader, val_data, test_data = splitted_loaders(dataset, batch_size=1,
-                                                             train_size=train_size, val_size=0.2)
-
-    n_train = int(len(dataset) * 0.6) / batch_size
-
-    epochs = 40
-    test_accuracy_history = []
-    test_loss_history = []
-
-    for epoch in range(epochs):
-        net.train()
-        epoch_loss = 0
-        for batch in tqdm(train_loader):
-            imgs = batch[0]
-            masks = batch[1].type(torch.long)
-
-            pred = net.forward(imgs)
-            loss = criterion(pred, masks)
-            epoch_loss += loss.item()
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        for batch in val_data:
-            imgs = batch[0]
-            masks = torch.tensor(batch[1], dtype=torch.long)
-
-            pred = net.forward(imgs)
-            loss = criterion(pred, masks)
-            test_loss_history.append(loss.item())
-
-            accuracy = (pred.argmax(dim=1) == masks).float().mean()
-            test_accuracy_history.append(accuracy)
-
-    plotfig(test_loss_history, 'val_loss.png')
-    plotfig(test_accuracy_history, 'val_acc.png')
-
-    torch.save(net.state_dict(), 'unet.pth')
-    print('COMPLETE')
+#
+# import random
+# from tqdm import tqdm
+# import numpy as np
+# import torch
+#
+#
+# if __name__ == '__main__':
+#     np.random.seed(42)
+#     random.seed(1001)
+#     torch.manual_seed(1002)
+#
+#     net = UNet(n_channels=1, n_classes=5, bilinear=True)
+#     optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-3, weight_decay=1e-8, momentum=0.9)
+#     criterion = torch.nn.CrossEntropyLoss()
+#
+#     dataset = WheatDS('dataset.json')
+#     train_size = 0.6
+#     batch_size = 1
+#     train_loader, val_data, test_data = splitted_loaders(dataset, batch_size=1,
+#                                                              train_size=train_size, val_size=0.2)
+#
+#     n_train = int(len(dataset) * 0.6) / batch_size
+#
+#     epochs = 40
+#     test_accuracy_history = []
+#     test_loss_history = []
+#
+#     for epoch in range(epochs):
+#         net.train()
+#         epoch_loss = 0
+#         for batch in tqdm(train_loader):
+#             imgs = batch[0]
+#             masks = batch[1].type(torch.long)
+#
+#             pred = net.forward(imgs)
+#             loss = criterion(pred, masks)
+#             epoch_loss += loss.item()
+#
+#             optimizer.zero_grad()
+#             loss.backward()
+#             optimizer.step()
+#
+#         for batch in val_data:
+#             imgs = batch[0]
+#             masks = torch.tensor(batch[1], dtype=torch.long)
+#
+#             pred = net.forward(imgs)
+#             loss = criterion(pred, masks)
+#             test_loss_history.append(loss.item())
+#
+#             accuracy = (pred.argmax(dim=1) == masks).float().mean()
+#             test_accuracy_history.append(accuracy)
+#
+#     plotfig(test_loss_history, 'val_loss.png')
+#     plotfig(test_accuracy_history, 'val_acc.png')
+#
+#     torch.save(net.state_dict(), 'unet.pth')
+#     print('COMPLETE')
