@@ -8,7 +8,7 @@ from data.dataset import BaseDataset
 from data.transforms import get_base_transform, get_sequence_transform, get_base_sequence_transform
 from options import get_config
 from torch.utils.data import DataLoader
-from models.CRNN import CRNN
+from models.CRNN import CRNN, CRNN_Leaky
 from models.loss import BCELoss, TverskyLoss
 import os
 from eval import evaluate_metrics, AverageMeter
@@ -16,7 +16,8 @@ from dynamic_ecg import FigPlotter
 from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
 
-
+#torch.use_deterministic_algorithms(True)
+torch.backends.cudnn.deterministic = True
 # FIX RANDOM SEED
 np.random.seed(42)
 random.seed(42)
