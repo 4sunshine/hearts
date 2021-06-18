@@ -8,7 +8,8 @@ from data.dataset import BaseDataset
 from data.transforms import get_base_transform, get_sequence_transform, get_base_sequence_transform
 from options import get_config
 from torch.utils.data import DataLoader
-from models.CRNN import CRNN, CRNN_Leaky
+from models.CRNN import CRNN
+from models.unet import UNet
 from models.loss import BCELoss, TverskyLoss
 import os
 from eval import evaluate_metrics, AverageMeter
@@ -30,6 +31,8 @@ PLOTTER = FigPlotter()
 def get_model(cfg):
     if cfg.model == 'crnn':
         model = CRNN(num_class=1)
+    elif cfg.model == 'unet':
+        model = UNet(n_channels=1, n_classes=1)
     else:
         raise NotImplementedError(f'Model {cfg.model} currently not implemented')
     if cfg.resume:
