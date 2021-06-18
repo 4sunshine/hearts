@@ -7,11 +7,12 @@ import torch
 
 
 class BaseDataset(Dataset):
-    def __init__(self, is_train, transform, cfg, file='data/train.csv', split_file='data/indices.pth'):
+    def __init__(self, is_train, transform, cfg, file='data/train.csv', split_file='data/indices.pth',
+                 anomalies_file='data/anomalies_masks.pth'):
         self.is_train = is_train
         self.cfg = cfg
         self.data = self.load_data(file, split_file)
-        self.anomalies_masks = torch.load('data/anomalies_masks.pth')
+        self.anomalies_masks = self.prepare_anomalies_masks(anomalies_file)
         self.transform = transform
 
     def load_data(self, file, split_file):
@@ -32,6 +33,14 @@ class BaseDataset(Dataset):
                 personal_data = list(personal_data[i] for i in val_indices)
         return personal_data
 
+    @staticmethod
+    def prepare_anomalies_masks(anomalies_file):
+        anomalies_masks = torch.load(anomalies_file)
+        starts = anomalies_masks['anomaly_start_indices']
+        ends = anomalies_masks['anomaly_end_indices']
+        person_ids = anomalies_masks['person_ids']
+        return {p_id: (start, end) for p_id, start, end in zip(person_ids, starts, ends)}
+
     def person_labels(self, item):
         person = self.data[item]
         person_id = person[0, 0]
@@ -42,14 +51,14 @@ class BaseDataset(Dataset):
 
     def get_training_data(self, item):
         person, labels, person_id = self.person_labels(item)
-        anomaly_starts = self.anomalies_masks['anomaly_start_indices'][item]
-        anomaly_ends = self.anomalies_masks['anomaly_end_indices'][item]
+        anomaly_starts, anomaly_ends = self.anomalies_masks[person_id]
+
         sample = {
             'person': person,
             'labels': labels,
             'mask': np.ones_like(labels),
-            # 'anomalies_starts': anomaly_starts,
-            # 'anomalies_ends': anomaly_ends,
+            'anomalies_starts': anomaly_starts,
+            'anomalies_ends': anomaly_ends,
             'start_pos': 0,
             'end_pos': len(labels),
             'person_id': person_id

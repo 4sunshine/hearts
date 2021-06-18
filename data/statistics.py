@@ -90,6 +90,8 @@ def measure_stats(personal_data):
     anomalies_starts, anomalies_ends = [], []
     # ANOMALIES DURATIONS
     anomalies_ticks, anomalies_durations, intras_ticks, intras_durations = [], [], [], []
+    # IDS TO STORE
+    person_ids = []
     for p in personal_data:
         observation_time, n_measures, mean_rr, std_rr, mean_anomal, std_anomal, starts_ids, ends_ids, \
         anomaly_measures, anomaly_durations, intra_measures, intra_durations = extract_observation_data(p)
@@ -106,6 +108,7 @@ def measure_stats(personal_data):
         anomalies_durations.append(anomaly_durations)
         intras_ticks.append(intra_measures)
         intras_durations.append(intra_durations)
+        person_ids.append(p[0, 0])
 
     count_measures = np.array(count_measures)
     observation_times = np.array(observation_times)
@@ -154,6 +157,7 @@ def measure_stats(personal_data):
         'anomaly_end_indices': anomalies_ends,
         'anomalies_ticks': anomalies_ticks,
         'anomalies_durations': anomalies_durations,
+        'person_ids': person_ids,
     }
 
     with open('data/statistics.json', 'w') as f:
@@ -182,7 +186,7 @@ def measure_len_analys(personal_data):
 
 
 if __name__ == '__main__':
-    all_data = load_data('data\\train.csv')
+    all_data = load_data('data/train.csv')
     # LIST OF NP ARRAYS
     personal_data = personalize_data(all_data)
     measure_stats(personal_data)
