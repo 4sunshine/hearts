@@ -20,7 +20,6 @@ def plot_person_ecg(df, id):
 
 
 
-
 if __name__ == '__main__':
     df = pd.read_csv("data/train.csv")
     plot_person_ecg(df, 1)
