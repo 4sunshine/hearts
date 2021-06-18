@@ -97,6 +97,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch, device, w
     print(f'Average Train Loss: {avg_loss.avg}')
 
 
+
 def validate(model, val_loader, criterion, epoch, device, writer, threshold):
     print(f'Validate epoch {epoch}')
     with torch.no_grad():
@@ -121,6 +122,7 @@ def validate(model, val_loader, criterion, epoch, device, writer, threshold):
             masks = masks.cpu().numpy()
 
             current_seq_len = sample[0]['end_pos']
+
             PLOTTER.plot_ecg(person[0, 0, : current_seq_len],
                              person[0, 1, : current_seq_len],
                              labels[0][: current_seq_len],
