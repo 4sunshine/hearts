@@ -220,6 +220,7 @@ def get_sequence_transform(cfg):
 def get_base_sequence_transform(cfg):
     base_transform = transforms.Compose([
         Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
+        SigmaCrop(),
         ToSequenceTensor()
     ])
     return base_transform
