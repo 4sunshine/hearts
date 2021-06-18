@@ -61,13 +61,13 @@ class PadZeros(object):
 
 
 class SigmaCrop(object):
-
     def __call__(self, sample):
         person, labels, mask = sample['person'], sample['labels'], sample['mask']
-        mean, std = person.mean(), person.std()
-        person[1][person[1] > mean + std] = mean + std
-        person[1][person[1] < mean - std] = mean - std
-        sample['person'] = person
+        if len(person > 200): # mediana
+            mean, std = person[1].mean(), person[1].std()
+            person[1][person[1] > (mean + 4 * std)] = mean + 4 * std
+            person[1][person[1] < (mean - 4 * std)] = mean - 4 * std
+            sample['person'] = person
         return sample
 
 
