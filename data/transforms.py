@@ -109,8 +109,8 @@ class RandomCrop(object):
             sample['mask'] = mask[crop_begin: crop_end]
             start_inds = start_inds[first_anomaly_to_hold: last_anomaly_to_hold + 1]
             end_inds = end_inds[first_anomaly_to_hold: last_anomaly_to_hold + 1]
-            sample['start_inds'] = start_inds - crop_begin
-            sample['end_inds'] = end_inds - crop_begin
+            sample['anomalies_starts'] = start_inds - crop_begin
+            sample['anomalies_ends'] = end_inds - crop_begin
             sample['end_pos'] = crop_length
             return sample
         else:
@@ -162,7 +162,7 @@ class RandomNoise(object):
 class RandomReflect(object):
     """Convert ndarrays in sample to Tensors."""
     # !!! APPLY IT ONLY AFTER ALL OTHER AUGMENTATIONS
-    def __init__(self, probability, coefficient):
+    def __init__(self, probability):
         assert 0 <= probability <= 1
         self.probability = probability
 
@@ -171,20 +171,16 @@ class RandomReflect(object):
             person, labels, mask = sample['person'], sample['labels'], sample['mask']
             start_inds = sample['anomalies_starts']
             end_inds = sample['anomalies_ends']
-            amplitudes = []
-            for st, en in zip(start_inds, end_inds):
-                current_anomaly = person[1, st: en]
-                amplitudes.append(np.max(current_anomaly) - np.min(current_anomaly))
-
-            min_amplitude = min(amplitudes)
-            noise_amplitude = self.coeff * min_amplitude
-            noise = noise_amplitude * np.random.normal(0, 1, len(labels))
-            noise = np.clip(noise, - 2 * noise_amplitude, 2 * noise_amplitude)
-            person[1, :] += noise
-            time_warp = person[1, 1:]
-            measure_time = np.cumsum(time_warp)
-            person[0, 1:] = measure_time
-            sample['person'] = person
+            seq_len = sample['end_pos']
+            new_start_inds = seq_len - np.flip(end_inds.copy())
+            new_end_inds = seq_len - np.flip(start_inds.copy())
+            labels = np.flip(labels)
+            person[1, :] = np.flip(person[1].copy())
+            person[0, :] = person[0, -1] - np.flip(person[0].copy())
+            sample['person'] = person.copy()
+            sample['labels'] = labels.copy()
+            sample['anomalies_starts'] = new_start_inds.copy()
+            sample['anomalies_ends'] = new_end_inds.copy()
             return sample
         else:
             return sample
@@ -204,7 +200,8 @@ def get_sequence_transform(cfg):
         Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
         RandomNoise(probability=0.3, coefficient=0.2),
         RandomCrop(probability=0.3),
-        ToSequenceTensor()
+        RandomReflect(probability=0.3),
+        ToSequenceTensor(),
     ])
     return base_transform
 

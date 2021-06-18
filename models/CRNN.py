@@ -60,7 +60,7 @@ class CRNN(nn.Module):
         # x: SEQ_LEN, BATCH, N_FEATURES -> BATCH, SEQ_LEN, N_CLASS = (1)
         x = x.permute(1, 0, 2)
         x = self.dense(x)
-        x = self.act_tanh(x)
+        x = self.act1(x)
         x = x.permute(0, 2, 1)
         x = self.up(x)
         x.squeeze_(1)
