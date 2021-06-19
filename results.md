@@ -19,3 +19,6 @@ unet_cuda_all_aug UNET GELU + RandCrop + RandNoise + Random_Refl: 0.7976 epoch 1
 unet_cuda_no_aug UNET GELU + No aug:0.7157 epoch 352
 unet_cuda_all_aug UNET ReLU + No aug:0.68 epoch ...  
 unet_cuda_relu_aug UNET ReLU + RandCrop + RandNoise + Random_Refl: 0.7984 epoch 390  
+unet_cuda_relu_aug UNET GeLU + RandCrop + RandNoise + Random_Refl + SigmaCrop: 0.8079 epoch 260 
+unet_cuda_gelu_sigma_crop_no_refl UNET GeLU + RandCrop + RandNoise + SigmaCrop: 0.7616 eoich 365 
+crnn_gelu_sigma_crop_no_refl CRNN + RandCrop + RandomCrop + RandomNoise: 0.789 epoch 114
