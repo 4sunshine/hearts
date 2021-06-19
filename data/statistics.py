@@ -60,10 +60,11 @@ def extract_observation_data(person):
 
     anomaly_measures = ends_ids - starts_ids
     anomaly_durations = times[ends_ids] - times[starts_ids]
+
     intra_measures = starts_ids[1:] - ends_ids[:-1]
     intra_durations = times[starts_ids[1:]] - times[ends_ids[:-1]]
     return observation_time, n_measures, mean_rr, std_rr, mean_anomal, std_anomal, starts_ids, ends_ids,\
-           anomaly_measures, anomaly_durations, intra_measures, intra_durations
+           anomaly_measures, anomaly_durations, intra_measures, intra_durations, anomal_rr
 
 
 def stats_from_list_of_numpy(data_list):
@@ -74,6 +75,10 @@ def stats_from_list_of_numpy(data_list):
             values.append(np.mean(data))
             all_dump += data.tolist()
     values = np.array(values)
+
+    plt.hist(values)
+    plt.show()
+
     # ASSUME THAT ALL DATA ARRAYS CONTAIN INT DATA
     return np.mean(values), np.std(values), int(np.min(np.array(all_dump))), int(np.max(np.array(all_dump)))
 
@@ -92,9 +97,11 @@ def measure_stats(personal_data):
     anomalies_ticks, anomalies_durations, intras_ticks, intras_durations = [], [], [], []
     # IDS TO STORE
     person_ids = []
+    anomal_rrs = []
+
     for p in personal_data:
         observation_time, n_measures, mean_rr, std_rr, mean_anomal, std_anomal, starts_ids, ends_ids, \
-        anomaly_measures, anomaly_durations, intra_measures, intra_durations = extract_observation_data(p)
+        anomaly_measures, anomaly_durations, intra_measures, intra_durations, anomal_rr = extract_observation_data(p)
 
         count_measures.append(n_measures)
         observation_times.append(observation_time)
@@ -109,6 +116,10 @@ def measure_stats(personal_data):
         intras_ticks.append(intra_measures)
         intras_durations.append(intra_durations)
         person_ids.append(p[0, 0])
+
+    target_covid = np.zeros(np.max(anomal_rrs) - np.min(anomal_rrs))
+    anomal_rrs -= np.min(anomal_rrs)
+    #target_covid[]
 
     count_measures = np.array(count_measures)
     observation_times = np.array(observation_times)

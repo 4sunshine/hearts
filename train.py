@@ -6,6 +6,7 @@ import random
 
 from data.dataset import BaseDataset
 from data.transforms import get_base_transform, get_sequence_transform, get_base_sequence_transform
+from models.unet2 import UNet2
 from options import get_config
 from torch.utils.data import DataLoader
 from models.CRNN import CRNN
@@ -33,6 +34,8 @@ def get_model(cfg):
         model = CRNN(num_class=1)
     elif cfg.model == 'unet':
         model = UNet(n_channels=1, n_classes=1)
+    elif cfg.model == 'unet2':
+        model = UNet2(n_channels=2, n_classes=1)
     else:
         raise NotImplementedError(f'Model {cfg.model} currently not implemented')
     if cfg.resume:
