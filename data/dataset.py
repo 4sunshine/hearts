@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from torch.utils.data import Dataset
 from data.statistics import personalize_data, load_data
 import numpy as np
@@ -14,7 +16,7 @@ class BaseDataset(Dataset):
         self.transform = transform
 
     def load_data(self, file, split_file):
-        all_data = load_data(file)
+        all_data = load_data(Path(file))
         personal_data = personalize_data(all_data)
         if split_file is not None:
             splits = torch.load(split_file)

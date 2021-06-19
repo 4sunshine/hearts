@@ -140,6 +140,8 @@ def measure_stats(personal_data):
     std_ticks = np.std(count_measures)
     max_ticks = int(np.max(count_measures))
     min_ticks = int(np.min(count_measures))
+    median_ticks = int(np.median(count_measures))
+    print(median_ticks, max_ticks, min_ticks)
 
     mean_an_ticks, std_an_ticks, min_an_ticks, max_an_ticks = stats_from_list_of_numpy(anomalies_ticks)
     mean_an_dur, std_an_dur, min_an_dur, max_an_dur = stats_from_list_of_numpy(anomalies_durations)

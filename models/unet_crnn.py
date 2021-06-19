@@ -70,7 +70,7 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels=1, n_classes=1, bilinear=True):
+    def __init__(self, n_channels=1, n_classes=1, rnn_hidden=256, bilinear=True):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -79,6 +79,15 @@ class UNet(nn.Module):
         self.inc = DoubleConv(n_channels, 64)
         self.down1 = Down(64, 128)
         self.down2 = Down(128, 256)
+
+        self.conv1 = nn.Conv1d(256, 128, 5, 1, padding=2)
+        self.BN1 = nn.BatchNorm1d(128)
+        self.act1 = nn.ReLU()
+        self.bi_lstm_1 = nn.LSTM(128, rnn_hidden, bidirectional=True)
+        self.bi_lstm_2 = nn.LSTM(2 * rnn_hidden, 128, bidirectional=True)
+        self.dense = nn.Linear(2 * 128, n_classes)
+        self.up = nn.ConvTranspose1d(1, 1, 4, 4)
+
         self.down3 = Down(256, 512)
         factor = 2 if bilinear else 1
         self.down4 = Down(512, 1024 // factor)
@@ -90,9 +99,21 @@ class UNet(nn.Module):
 
     def forward(self, x):
         x = x[:, 1: , :]
+        fft = torch.fft.fft(x)
+        x = torch.cat((x, fft), 1)
+
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
+
+        y_lstm = self.conv1(x3)
+        y_lstm = self.BN1(y_lstm)
+        y_lstm = self.act1(y_lstm)
+        y_lstm = self.bi_lstm_1(y_lstm)
+        y_lstm = self.bi_lstm_2(y_lstm)
+        y_lstm = self.dense(y_lstm)
+        y_lstm = self.up(y_lstm)
+
         x4 = self.down3(x3)
         x5 = self.down4(x4)
         x = self.up1(x5, x4)
@@ -100,65 +121,8 @@ class UNet(nn.Module):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         x = self.outc(x)
+
+        x = x * y_lstm
+
         x = x[:, 0, :]
         return x
-
-#
-# import random
-# from tqdm import tqdm
-# import numpy as np
-# import torch
-#
-#
-# if __name__ == '__main__':
-#     np.random.seed(42)
-#     random.seed(1001)
-#     torch.manual_seed(1002)
-#
-#     net = UNet(n_channels=1, n_classes=5, bilinear=True)
-#     optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-3, weight_decay=1e-8, momentum=0.9)
-#     criterion = torch.nn.CrossEntropyLoss()
-#
-#     dataset = WheatDS('dataset.json')
-#     train_size = 0.6
-#     batch_size = 1
-#     train_loader, val_data, test_data = splitted_loaders(dataset, batch_size=1,
-#                                                              train_size=train_size, val_size=0.2)
-#
-#     n_train = int(len(dataset) * 0.6) / batch_size
-#
-#     epochs = 40
-#     test_accuracy_history = []
-#     test_loss_history = []
-#
-#     for epoch in range(epochs):
-#         net.train()
-#         epoch_loss = 0
-#         for batch in tqdm(train_loader):
-#             imgs = batch[0]
-#             masks = batch[1].type(torch.long)
-#
-#             pred = net.forward(imgs)
-#             loss = criterion(pred, masks)
-#             epoch_loss += loss.item()
-#
-#             optimizer.zero_grad()
-#             loss.backward()
-#             optimizer.step()
-#
-#         for batch in val_data:
-#             imgs = batch[0]
-#             masks = torch.tensor(batch[1], dtype=torch.long)
-#
-#             pred = net.forward(imgs)
-#             loss = criterion(pred, masks)
-#             test_loss_history.append(loss.item())
-#
-#             accuracy = (pred.argmax(dim=1) == masks).float().mean()
-#             test_accuracy_history.append(accuracy)
-#
-#     plotfig(test_loss_history, 'val_loss.png')
-#     plotfig(test_accuracy_history, 'val_acc.png')
-#
-#     torch.save(net.state_dict(), 'unet.pth')
-#     print('COMPLETE')
