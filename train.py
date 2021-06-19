@@ -33,6 +33,8 @@ def get_model(cfg):
         model = CRNN(num_class=1)
     elif cfg.model == 'unet':
         model = UNet(n_channels=1, n_classes=1)
+    elif cfg.model == 'unet_crnn':
+        model = UNet(n_channels=1, n_classes=1)
     else:
         raise NotImplementedError(f'Model {cfg.model} currently not implemented')
     if cfg.resume:
