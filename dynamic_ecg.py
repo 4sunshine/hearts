@@ -12,17 +12,25 @@ class FigPlotter:
         prediction = prediction[RR != 0]
         time = time[RR != 0]
 
-        mean, std = RR.mean(), RR.std()
+        # mean, std = RR[target == 1].mean(), RR[target == 1].std()
+        # mean, std = RR.mean(), RR.std()
         # RR[RR > mean + std] = mean + std
         # RR[RR < mean - std] = mean - std
+
+        # if len(person > 200): # mediana
+        #     mean, std = person[1].mean(), person[1].std()
+        #     person[1][person[1] > (mean + 4 * std)] = mean + 4 * std
+        #     person[1][person[1] < (mean - 4 * std)] = mean - 4 * std
 
         plt.plot(time, RR)
         [plt.fill_between([time[i], ], [min(RR), ], [RR[i], ], color='red', alpha=0.2) for i in range(len(time)) if target[i] == 1]
         [plt.fill_between([time[i], ], [RR[i], ], [max(RR), ], color='green', alpha=0.2) for i in range(len(time)) if prediction[i] == 1]
-        [plt.fill_between([time[i], ], [min(RR), ], [max(RR), ], color='green', alpha=0.2) for i in range(len(time)) if RR[i] > (mean + 2 * std)]
+        # [plt.fill_between([time[i], ], [min(RR), ], [max(RR), ], color='green', alpha=0.2) for i in range(len(time)) if RR[i] > (mean + 4*std)]
+        # [plt.fill_between([time[i], ], [min(RR), ], [max(RR), ], color='green', alpha=0.2) for i in range(len(time)) if RR[i] < (mean - 4*std)]
         plt.xlabel("Время, мин")
         plt.ylabel("R-R интервал")
         plt.title(f"Ритмограмма пациента N{person_id}")
+        plt.savefig(f'{person_id}')
         plt.tight_layout()
 
     @staticmethod
@@ -93,12 +101,12 @@ class FigPlotter:
 if __name__ == '__main__':
     df = pd.read_csv('data/train.csv')
 
-    for id in [4, ]:
-    # for id in set(df['id']):
+    # for id in [4, ]:
+    for id in set(df['id']):
         person = df.loc[df['id'] == id]
         time, RR, label = person['time'].to_numpy(), person['x'].to_numpy(), person['y'].to_numpy()
         FigPlotter.plot_ecg(time, RR, label, np.zeros(len(RR)), id)
-        FigPlotter.show()
+        # FigPlotter.show()
         FigPlotter.refresh()
         # FigPlotter.plot_covid(time, RR, label, id)
         # FigPlotter.show()
