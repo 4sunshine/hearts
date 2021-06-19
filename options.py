@@ -4,9 +4,10 @@ import argparse
 def get_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('experiment_name', type=str, help='Experiment_name')
-    parser.add_argument('--model', default='unet', type=str, choices=['crnn', 'unet', 'unet2'])
+    parser.add_argument('--model', default='unet', type=str, choices=['crnn', 'unet', 'unet2', 'ensemble'])
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--eval', action='store_true')
     parser.add_argument('--resume_path', type=str)
     parser.add_argument('--batch_size', default=32, type=int, help='Batch size')
     parser.add_argument('--max_epoch', default=200, type=int, help='Max epoch')

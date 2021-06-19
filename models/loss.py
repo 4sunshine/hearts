@@ -103,3 +103,32 @@ class WeightedFocalLoss(nn.Module):
         pt = torch.exp(-BCE_loss)
         F_loss = at*(1-pt)**self.gamma * BCE_loss
         return F_loss.mean()
+
+
+class BoundaryLoss(nn.Module):
+    def __init__(self):
+        super(BoundaryLoss, self).__init__()
+
+    def forward(self, inputs, targets, mask):
+        boundary_pred = torch.abs(torch.diff(inputs))
+        boundary_gt = torch.abs(torch.diff(targets))
+        return F.binary_cross_entropy_with_logits(boundary_pred[mask[:, :-1]], boundary_gt[mask[:, :-1]], reduction='none')
+
+
+class Boundary_BCE(nn.Module):
+    def __init__(self, alpha=1.):
+        super(Boundary_BCE, self).__init__()
+        self.bce = BCELoss()
+        self.bound = BoundaryLoss()
+        self.alpha = alpha
+
+    def forward(self, inputs, targets, mask):
+        l1 = self.bce(inputs, targets, mask)
+        l2 = self.bound(inputs, targets, mask)
+        return l1 + self.alpha * l2
+
+        # targets = targets[mask].type(torch.long)
+        # at = self.alpha.gather(0, targets.data.view(-1))
+        # pt = torch.exp(-BCE_loss)
+        # F_loss = at*(1-pt)**self.gamma * BCE_loss
+        # return F_loss.mean()

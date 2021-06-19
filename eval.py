@@ -1,8 +1,10 @@
 from sklearn.metrics import f1_score
+from sklearn.metrics import confusion_matrix
 
 
 def evaluate_metrics(output, target):
-    return f1_score(output, target, average='binary')
+    tn, fp, fn, tp = confusion_matrix(target, output).ravel()
+    return tp / (tp + 1 / 2 * (fp + fn))
 
 
 class AverageMeter(object):

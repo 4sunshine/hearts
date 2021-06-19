@@ -11,7 +11,8 @@ from options import get_config
 from torch.utils.data import DataLoader
 from models.CRNN import CRNN
 from models.unet import UNet
-from models.loss import BCELoss, TverskyLoss, WeightedFocalLoss
+from models.loss import BCELoss, TverskyLoss, WeightedFocalLoss, Boundary_BCE
+from models.ensemble import EnsembleU
 import os
 from eval import evaluate_metrics, AverageMeter
 from dynamic_ecg import FigPlotter
@@ -38,6 +39,9 @@ def get_model(cfg):
         model = UNet2(n_channels=2, n_classes=1)
     elif cfg.model == 'unet_crnn':
         model = UNet(n_channels=1, n_classes=1)
+    elif cfg.model == 'ensemble':
+        model = EnsembleU('experiments/best_unet_resume_threshold_after/best_val_score.pth', 'experiments/crnn_resume_sub_2/best_val_score.pth',
+                          epoch=52)
     else:
         raise NotImplementedError(f'Model {cfg.model} currently not implemented')
     if cfg.resume:
@@ -155,14 +159,18 @@ def main(cfg):
     model = get_model(cfg)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda e: 1.)  # CONSTANT LEARNING RATE
-    criterion = BCELoss()
+    #criterion = BCELoss()
+    criterion = Boundary_BCE()
     save_dir = os.path.join('experiments', cfg.experiment_name)
     best_val_score = 0.
     best_epoch = 0
 
     for epoch in range(cfg.max_epoch):
-        train(model, train_loader, criterion, scheduler, optimizer, epoch, cfg.device, cfg.writer)
+        if not cfg.eval:
+            train(model, train_loader, criterion, scheduler, optimizer, epoch, cfg.device, cfg.writer)
         val_loss, val_score = validate(model, val_loader, criterion, epoch, cfg.device, cfg.writer, cfg.threshold)
+        if cfg.eval:
+            break
         if val_score >= best_val_score:
             torch.save(model.state_dict(), os.path.join(save_dir, 'best_val_score.pth'))
             print(f'Best val score {val_score} achieved on epoch {epoch}.')
