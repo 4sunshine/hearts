@@ -114,7 +114,8 @@ class TestDataset(Dataset):
         sample = {
             'person': person,
             'start_pos': 0,
-            'end_pos': len(person),
+            'end_pos': len(person[0]),
+            'time': person[0, :].copy(),
             'person_id': person_id
         }
         if self.transform:

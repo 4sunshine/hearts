@@ -14,7 +14,7 @@ def load_data(filepath):
     df_sorted = df_copy.sort_values(['id', 'time'], ascending=(True, True))
     sorted_data = np.array(df_sorted.values).astype(np.int32)
     all_data = np.array(df.values).astype(np.int32)
-    assert (all_data == sorted_data).all(), 'UNSORTED DATA'
+    #assert (all_data == sorted_data).all(), 'UNSORTED DATA'
     return all_data
 
 
