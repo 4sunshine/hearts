@@ -62,7 +62,8 @@ class PadZeros(object):
 
 class SigmaCrop(object):
     def __call__(self, sample):
-        person, labels, mask = sample['person'], sample['labels'], sample['mask']
+        person = sample['person']
+
         if len(person > 200): # mediana
             mean, std = person[1].mean(), person[1].std()
             person[1][person[1] > (mean + 4 * std)] = mean + 4 * std
@@ -138,6 +139,14 @@ class ToSequenceTensor(object):
         return sample
 
 
+class ToTestSequenceTensor(object):
+    """Convert ndarrays in sample to Tensors."""
+    def __call__(self, sample):
+        person = sample['person']
+        sample['person'] = torch.from_numpy(person).permute(1, 0)  # DIM 1 IS TIME DIMENSION
+        return sample
+
+
 class RandomNoise(object):
     """Convert ndarrays in sample to Tensors."""
     # !!! APPLY IT ONLY AFTER ALL OTHER AUGMENTATIONS
@@ -197,6 +206,55 @@ class RandomReflect(object):
             return sample
 
 
+class RandomSlope(object):
+    """Convert ndarrays in sample to Tensors."""
+    # !!! APPLY IT ONLY AFTER ALL OTHER AUGMENTATIONS
+    def __init__(self, probability, amplitude):
+        assert 0 <= probability <= 1
+        self.probability = probability
+        self.amplitude = amplitude
+
+    def __call__(self, sample):
+        if np.random.rand() < self.probability:
+            person, labels, mask = sample['person'], sample['labels'], sample['mask']
+            max_val, min_val = np.max(person[1, :]), np.min(person[1, :])
+            dy = max_val - min_val
+            sign = -1 if np.random.rand() < 0.5 else 1
+            b = -self.amplitude * 0.5 * dy
+            k = -2 * b / sample['end_pos']
+            linsp = np.arange(sample['end_pos'])
+            add_slope = k * linsp + b
+            person[1, :] += sign * add_slope
+            time_warp = person[1, 1:]
+            measure_time = np.cumsum(time_warp)
+            person[0, 1:] = measure_time
+            sample['person'] = person
+            return sample
+        else:
+            return sample
+
+
+class RandomFlip(object):
+    """Convert ndarrays in sample to Tensors."""
+    # !!! APPLY IT ONLY AFTER ALL OTHER AUGMENTATIONS
+    def __init__(self, probability):
+        assert 0 <= probability <= 1
+        self.probability = probability
+
+    def __call__(self, sample):
+        if np.random.rand() < self.probability:
+            person, labels, mask = sample['person'], sample['labels'], sample['mask']
+            max_val, min_val = np.max(person[1, :]), np.min(person[1, :])
+            person[1, :] = min_val + (max_val - person[1, :])
+            time_warp = person[1, 1:]
+            measure_time = np.cumsum(time_warp)
+            person[0, 1:] = measure_time
+            sample['person'] = person
+            return sample
+        else:
+            return sample
+
+
 def get_base_transform(cfg):
     base_transform = transforms.Compose([
         Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
@@ -209,9 +267,11 @@ def get_base_transform(cfg):
 def get_sequence_transform(cfg):
     base_transform = transforms.Compose([
         Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
-        # RandomNoise(probability=0.3, coefficient=0.2),
-        # RandomCrop(probability=0.3),
-        # RandomReflect(probability=0.3),
+        SigmaCrop(),
+        # RandomSlope(probability=0.3, amplitude=0.2),
+        RandomNoise(probability=0.3, coefficient=0.2),
+        RandomCrop(probability=0.3),
+        RandomReflect(probability=0.3),
         ToSequenceTensor(),
     ])
     return base_transform
@@ -220,7 +280,16 @@ def get_sequence_transform(cfg):
 def get_base_sequence_transform(cfg):
     base_transform = transforms.Compose([
         Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
-        # SigmaCrop(),
+        SigmaCrop(),
         ToSequenceTensor()
+    ])
+    return base_transform
+
+
+def get_test_sequence_transform(cfg):
+    base_transform = transforms.Compose([
+        Normalize((cfg.RR_MEAN, cfg.RR_STD), (0, cfg.RR_MEAN * cfg.MAX_N_TICKS / 2.)),
+        SigmaCrop(),
+        ToTestSequenceTensor()
     ])
     return base_transform

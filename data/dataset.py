@@ -92,3 +92,40 @@ class BaseDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
+
+class TestDataset(Dataset):
+    def __init__(self, transform, cfg, file='data/test.csv'):
+        self.cfg = cfg
+        self.data = self.load_data(file)
+        self.transform = transform
+
+    def load_data(self, file):
+        all_data = load_data(file)
+        personal_data = personalize_data(all_data)
+        return personal_data
+
+    def person_labels(self, item):
+        person = self.data[item]
+        person_id = person[0, 0]
+        person = person[:, 1:]
+        person = np.transpose(person).astype(np.float64)  # CHANNELS: [TIME, RR], TICKS
+        return person, person_id
+
+    def get_test_data(self, item):
+        person, person_id = self.person_labels(item)
+        sample = {
+            'person': person,
+            'start_pos': 0,
+            'end_pos': len(person[0]),
+            'time': person[0, :].copy(),
+            'person_id': person_id
+        }
+        if self.transform:
+            sample = self.transform(sample)
+        return sample
+
+    def __getitem__(self, item):
+        return self.get_test_data(item)
+
+    def __len__(self):
+        return len(self.data)
