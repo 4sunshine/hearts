@@ -26,5 +26,7 @@ unet_cuda_gelu_sigma_crop_slope UNET GeLU + RandCrop + RandNoise + SigmaCrop + R
 unet_cuda_gelu_sigma_crop_slope UNET GeLU + RandCrop + RandNoise + SigmaCrop + Random_Refl + RandSlope0.3: 0.8095 eoich 296  
 unet_cuda_gelu_sigma_crop_slope UNET GeLU + RandCrop + RandNoise + SigmaCrop + Random_Refl + RandSlope0.5: 0.8005 eoich 254  
 unet_cuda_gelu_sigma_crop_slope UNET GeLU + RandCrop + RandNoise + SigmaCrop + Random_Refl + RandSlope0.3 + RandFlip: 0.7931 eoich 254  
-
+unet_features UNET GeLU + RandCrop + RandNoise + SigmaCrop + Random_Refl + RandSlope0.3:  0.7968 eoich 398  
+unet_features_noslope UNET GeLU + RandCrop + RandNoise + SigmaCrop + Random_Refl:  0.7941 eoich 345  
+unet_features_nonorm_noslope UNET GeLU + RandCrop + RandNoise + SigmaCrop + Random_Refl + RandSlope0.3:  0.7932 eoich 345  
 

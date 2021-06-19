@@ -11,7 +11,7 @@ from options import get_config
 from torch.utils.data import DataLoader
 from models.CRNN import CRNN
 from models.unet import UNet
-from models.loss import BCELoss, TverskyLoss
+from models.loss import BCELoss, TverskyLoss, WeightedFocalLoss
 import os
 from eval import evaluate_metrics, AverageMeter
 from dynamic_ecg import FigPlotter
